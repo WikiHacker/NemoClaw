@@ -13,12 +13,12 @@ export async function cliConnect(opts: ConnectOptions): Promise<void> {
   const { sandbox: sandboxName, logger } = opts;
 
   logger.info(`Connecting to OpenClaw sandbox: ${sandboxName}`);
-  logger.info("You will be inside the sandbox. Run 'openclaw' commands normally.");
+  logger.info("You will be inside the sandbox as the sandbox user. Run 'openclaw' commands normally.");
   logger.info("Type 'exit' to return to your host shell.");
   logger.info("");
 
   const exitCode = await new Promise<number | null>((resolve) => {
-    const proc = spawn("openshell", ["sandbox", "connect", sandboxName], {
+    const proc = spawn("openshell", ["sandbox", "connect", sandboxName, "--", "nemoclaw-shell"], {
       stdio: "inherit",
     });
     proc.on("close", resolve);

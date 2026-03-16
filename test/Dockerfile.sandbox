@@ -33,8 +33,7 @@ WORKDIR /opt/nemoclaw
 RUN npm install && rm -rf dist && npx tsc
 
 COPY scripts/nemoclaw-shell.sh /usr/local/bin/nemoclaw-shell
-COPY scripts/nemoclaw-gateway.sh /usr/local/bin/nemoclaw-gateway.sh
-RUN chmod +x /usr/local/bin/nemoclaw-shell /usr/local/bin/nemoclaw-gateway.sh
+RUN chmod +x /usr/local/bin/nemoclaw-shell
 
 # Patch OpenClaw's nvidia provider to replace Meta Llama 3.3 70B with
 # Nemotron 3 Super 120B. OpenClaw's embedded agent has a hardcoded model

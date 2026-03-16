@@ -31,13 +31,12 @@ Both interfaces are installed when you run `npm install -g nemoclaw`.
 
 Bootstrap a fresh OpenClaw installation inside an OpenShell sandbox.
 After provisioning the sandbox, NemoClaw runs `openclaw setup` and
-`nemoclaw-gateway.sh ensure` inside it so the config, workspace, sessions,
-gateway auth token, and direct Gateway process all exist before first use.
+`openclaw gateway install --json` inside it so the config, workspace, sessions,
+and gateway auth token all exist before first use.
 If NemoClaw detects an existing host installation, `launch` stops and points you
 to `openclaw nemoclaw migrate` unless you pass `--force`.
-The Gateway manager uses `~/.openclaw/run/gateway.pid` and
-`~/.openclaw/run/gateway.lock` so headless bootstrap stays non-interactive and
-does not depend on systemd or root-only service installation.
+If the sandbox does not support user-systemd, NemoClaw falls back to a direct
+background gateway process so headless bootstrap still completes without root.
 
 ```console
 $ openclaw nemoclaw launch [--force] [--profile <profile>]

@@ -33,7 +33,8 @@ function isSystemdUnavailableDetail(detail: string): boolean {
     normalized.includes("systemd user services are required") ||
     normalized.includes("failed to connect to bus") ||
     normalized.includes("dbus_session_bus_address") ||
-    normalized.includes("xdg_runtime_dir")
+    normalized.includes("xdg_runtime_dir") ||
+    normalized.includes("system has not been booted with systemd")
   );
 }
 

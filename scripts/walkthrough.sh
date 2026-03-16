@@ -36,7 +36,7 @@
 #     openshell term
 #
 #   Terminal 2 (Agent):
-#     openshell sandbox connect nemoclaw
+#     openshell sandbox connect nemoclaw -- nemoclaw-shell
 #     export NVIDIA_API_KEY=nvapi-...
 #     nemoclaw-start
 #     openclaw agent --agent main --local --session-id live
@@ -68,7 +68,7 @@ if ! command -v tmux > /dev/null 2>&1; then
   echo "    openshell term"
   echo ""
   echo "  Terminal 2 (Agent):"
-  echo "    openshell sandbox connect nemoclaw"
+  echo "    openshell sandbox connect nemoclaw -- nemoclaw-shell"
   echo "    export NVIDIA_API_KEY=$NVIDIA_API_KEY"
   echo "    nemoclaw-start"
   echo "    openclaw agent --agent main --local --session-id live"
@@ -85,7 +85,7 @@ tmux new-session -d -s "$SESSION" -x 200 -y 50 "openshell term"
 
 # Split right pane for the agent
 tmux split-window -h -t "$SESSION" \
-  "openshell sandbox connect nemoclaw -- bash -c 'export NVIDIA_API_KEY=$NVIDIA_API_KEY && nemoclaw-start openclaw agent --agent main --local --session-id live'"
+  "openshell sandbox connect nemoclaw -- nemoclaw-shell bash -lc 'export NVIDIA_API_KEY=$NVIDIA_API_KEY && nemoclaw-start openclaw agent --agent main --local --session-id live'"
 
 # Even split
 tmux select-layout -t "$SESSION" even-horizontal

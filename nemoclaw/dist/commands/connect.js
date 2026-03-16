@@ -7,11 +7,11 @@ const node_child_process_1 = require("node:child_process");
 async function cliConnect(opts) {
     const { sandbox: sandboxName, logger } = opts;
     logger.info(`Connecting to OpenClaw sandbox: ${sandboxName}`);
-    logger.info("You will be inside the sandbox. Run 'openclaw' commands normally.");
+    logger.info("You will be inside the sandbox as the sandbox user. Run 'openclaw' commands normally.");
     logger.info("Type 'exit' to return to your host shell.");
     logger.info("");
     const exitCode = await new Promise((resolve) => {
-        const proc = (0, node_child_process_1.spawn)("openshell", ["sandbox", "connect", sandboxName], {
+        const proc = (0, node_child_process_1.spawn)("openshell", ["sandbox", "connect", sandboxName, "--", "nemoclaw-shell"], {
             stdio: "inherit",
         });
         proc.on("close", resolve);

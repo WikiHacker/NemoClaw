@@ -39,8 +39,7 @@ RUN mkdir -p /sandbox/.nemoclaw/blueprints/0.1.0 \
 # Copy startup scripts and force read+execute bits for the sandbox user.
 COPY scripts/nemoclaw-start.sh /usr/local/bin/nemoclaw-start
 COPY scripts/nemoclaw-shell.sh /usr/local/bin/nemoclaw-shell
-COPY scripts/nemoclaw-gateway.sh /usr/local/bin/nemoclaw-gateway.sh
-RUN chmod 755 /usr/local/bin/nemoclaw-start /usr/local/bin/nemoclaw-shell /usr/local/bin/nemoclaw-gateway.sh
+RUN chmod 755 /usr/local/bin/nemoclaw-start /usr/local/bin/nemoclaw-shell
 
 WORKDIR /sandbox
 
