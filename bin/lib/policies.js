@@ -161,6 +161,7 @@ function applyPreset(sandboxName, presetName) {
 
   try {
     run(buildPolicySetCommand(tmpFile, sandboxName));
+
     console.log(`  Applied preset: ${presetName}`);
   } finally {
     fs.unlinkSync(tmpFile);
