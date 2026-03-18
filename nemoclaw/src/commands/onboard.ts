@@ -42,6 +42,7 @@ const DEFAULT_MODELS = [
   { id: "qwen/qwen3.5-397b-a17b", label: "Qwen3.5 397B A17B" },
   { id: "openai/gpt-oss-120b", label: "GPT-OSS 120B" },
 ];
+const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:30b";
 
 function resolveProfile(endpointType: EndpointType): string {
   switch (endpointType) {
@@ -122,6 +123,32 @@ function detectOllama(): { installed: boolean; running: boolean } {
   const installed = testCommand("command -v ollama >/dev/null 2>&1");
   const running = testCommand("curl -sf http://localhost:11434/api/tags >/dev/null 2>&1");
   return { installed, running };
+}
+
+function parseOllamaList(output: string): string[] {
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^NAME\s+/i.test(line))
+    .map((line) => line.split(/\s{2,}/)[0])
+    .filter(Boolean);
+}
+
+function getOllamaModelOptions(): string[] {
+  try {
+    const output = execSync("ollama list", { encoding: "utf-8", shell: "/bin/bash" });
+    const parsed = parseOllamaList(output);
+    if (parsed.length > 0) {
+      return parsed;
+    }
+  } catch {}
+  return [DEFAULT_OLLAMA_MODEL];
+}
+
+function getDefaultOllamaModel(): string {
+  const models = getOllamaModelOptions();
+  return models.includes(DEFAULT_OLLAMA_MODEL) ? DEFAULT_OLLAMA_MODEL : models[0];
 }
 
 function testCommand(command: string): boolean {
@@ -340,7 +367,10 @@ export async function cliOnboard(opts: OnboardOptions): Promise<void> {
   if (opts.model) {
     model = opts.model;
   } else {
-    const discoveredModelOptions = validation.models.map((id) => ({ label: id, value: id }));
+    const discoveredModelOptions =
+      endpointType === "ollama"
+        ? getOllamaModelOptions().map((id) => ({ label: id, value: id }))
+        : validation.models.map((id) => ({ label: id, value: id }));
     const curatedCloudOptions =
       endpointType === "build" || endpointType === "ncp"
         ? DEFAULT_MODELS.filter((option) => validation.models.includes(option.id)).map((option) => ({
@@ -348,6 +378,13 @@ export async function cliOnboard(opts: OnboardOptions): Promise<void> {
             value: option.id,
           }))
         : [];
+    const defaultIndex =
+      endpointType === "ollama"
+        ? Math.max(
+            0,
+            discoveredModelOptions.findIndex((option) => option.value === getDefaultOllamaModel()),
+          )
+        : 0;
     const modelOptions =
       curatedCloudOptions.length > 0
         ? curatedCloudOptions
@@ -355,7 +392,7 @@ export async function cliOnboard(opts: OnboardOptions): Promise<void> {
           ? discoveredModelOptions
           : DEFAULT_MODELS.map((m) => ({ label: `${m.label} (${m.id})`, value: m.id }));
 
-    model = await promptSelect("Select your primary model:", modelOptions);
+    model = await promptSelect("Select your primary model:", modelOptions, defaultIndex);
   }
 
   // Step 6: Resolve profile

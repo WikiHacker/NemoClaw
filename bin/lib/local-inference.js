@@ -3,6 +3,7 @@
 
 const HOST_GATEWAY_URL = "http://host.openshell.internal";
 const CONTAINER_REACHABILITY_IMAGE = "curlimages/curl:8.10.1";
+const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:30b";
 
 function getLocalProviderBaseUrl(provider) {
   switch (provider) {
@@ -89,11 +90,39 @@ function validateLocalProvider(provider, runCapture) {
   }
 }
 
+function parseOllamaList(output) {
+  return String(output || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^NAME\s+/i.test(line))
+    .map((line) => line.split(/\s{2,}/)[0])
+    .filter(Boolean);
+}
+
+function getOllamaModelOptions(runCapture) {
+  const output = runCapture("ollama list 2>/dev/null", { ignoreError: true });
+  const parsed = parseOllamaList(output);
+  if (parsed.length > 0) {
+    return parsed;
+  }
+  return [DEFAULT_OLLAMA_MODEL];
+}
+
+function getDefaultOllamaModel(runCapture) {
+  const models = getOllamaModelOptions(runCapture);
+  return models.includes(DEFAULT_OLLAMA_MODEL) ? DEFAULT_OLLAMA_MODEL : models[0];
+}
+
 module.exports = {
   CONTAINER_REACHABILITY_IMAGE,
+  DEFAULT_OLLAMA_MODEL,
   HOST_GATEWAY_URL,
+  getDefaultOllamaModel,
   getLocalProviderBaseUrl,
   getLocalProviderContainerReachabilityCheck,
   getLocalProviderHealthCheck,
+  getOllamaModelOptions,
+  parseOllamaList,
   validateLocalProvider,
 };

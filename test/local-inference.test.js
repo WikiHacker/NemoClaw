@@ -6,9 +6,13 @@ const assert = require("node:assert/strict");
 
 const {
   CONTAINER_REACHABILITY_IMAGE,
+  DEFAULT_OLLAMA_MODEL,
+  getDefaultOllamaModel,
   getLocalProviderBaseUrl,
   getLocalProviderContainerReachabilityCheck,
   getLocalProviderHealthCheck,
+  getOllamaModelOptions,
+  parseOllamaList,
   validateLocalProvider,
 } = require("../bin/lib/local-inference");
 
@@ -72,5 +76,43 @@ describe("local inference helpers", () => {
     const result = validateLocalProvider("vllm-local", () => "");
     assert.equal(result.ok, false);
     assert.match(result.message, /http:\/\/localhost:8000/);
+  });
+
+  it("parses model names from ollama list output", () => {
+    assert.deepEqual(
+      parseOllamaList(
+        [
+          "NAME                        ID              SIZE      MODIFIED",
+          "nemotron-3-nano:30b         abc123          24 GB     2 hours ago",
+          "qwen3:32b                   def456          20 GB     1 day ago",
+        ].join("\n"),
+      ),
+      ["nemotron-3-nano:30b", "qwen3:32b"],
+    );
+  });
+
+  it("returns parsed ollama model options when available", () => {
+    assert.deepEqual(
+      getOllamaModelOptions(() => "nemotron-3-nano:30b  abc  24 GB  now\nqwen3:32b  def  20 GB  now"),
+      ["nemotron-3-nano:30b", "qwen3:32b"],
+    );
+  });
+
+  it("falls back to the default ollama model when list output is empty", () => {
+    assert.deepEqual(getOllamaModelOptions(() => ""), [DEFAULT_OLLAMA_MODEL]);
+  });
+
+  it("prefers the default ollama model when present", () => {
+    assert.equal(
+      getDefaultOllamaModel(() => "qwen3:32b  abc  20 GB  now\nnemotron-3-nano:30b  def  24 GB  now"),
+      DEFAULT_OLLAMA_MODEL,
+    );
+  });
+
+  it("falls back to the first listed ollama model when the default is absent", () => {
+    assert.equal(
+      getDefaultOllamaModel(() => "qwen3:32b  abc  20 GB  now\ngemma3:4b  def  3 GB  now"),
+      "qwen3:32b",
+    );
   });
 });

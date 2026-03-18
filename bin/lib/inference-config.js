@@ -3,7 +3,6 @@
 
 const INFERENCE_ROUTE_URL = "https://inference.local/v1";
 const DEFAULT_CLOUD_MODEL = "nvidia/nemotron-3-super-120b-a12b";
-const DEFAULT_OLLAMA_MODEL = "nemotron-3-nano:30b";
 const CLOUD_MODEL_OPTIONS = [
   { id: "nvidia/nemotron-3-super-120b-a12b", label: "Nemotron 3 Super 120B" },
   { id: "moonshotai/kimi-k2.5", label: "Kimi K2.5" },
@@ -15,6 +14,7 @@ const CLOUD_MODEL_OPTIONS = [
 const DEFAULT_ROUTE_PROFILE = "inference-local";
 const DEFAULT_ROUTE_CREDENTIAL_ENV = "OPENAI_API_KEY";
 const MANAGED_PROVIDER_ID = "inference";
+const { DEFAULT_OLLAMA_MODEL } = require("./local-inference");
 
 function getProviderSelectionConfig(provider, model) {
   switch (provider) {

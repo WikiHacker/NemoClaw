@@ -35,6 +35,7 @@ credentials.ensureApiKey = async () => {};
 runner.runCapture = (command) => {
   if (command.includes("command -v ollama")) return "/usr/bin/ollama";
   if (command.includes("localhost:11434/api/tags")) return JSON.stringify({ models: [{ name: "nemotron-3-nano:30b" }] });
+  if (command.includes("ollama list")) return "nemotron-3-nano:30b  abc  24 GB  now\\nqwen3:32b  def  20 GB  now";
   if (command.includes("localhost:8000/v1/models")) return "";
   return "";
 };
