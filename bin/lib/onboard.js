@@ -12,6 +12,7 @@ const nim = require("./nim");
 const policies = require("./policies");
 const HOST_GATEWAY_URL = "http://host.openshell.internal";
 const EXPERIMENTAL = process.env.NEMOCLAW_EXPERIMENTAL === "1";
+const DEFAULT_GATEWAY_NAME = "nemoclaw";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -19,6 +20,10 @@ function step(n, total, msg) {
   console.log("");
   console.log(`  [${n}/${total}] ${msg}`);
   console.log(`  ${"─".repeat(50)}`);
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
 function isDockerRunning() {
@@ -86,10 +91,49 @@ async function preflight() {
  * Fully tear down the gateway including Docker volumes that can cause
  * "Corrupted cluster state" on subsequent runs.
  */
-function destroyGateway() {
-  run("openshell gateway destroy -g nemoclaw 2>/dev/null || true", { ignoreError: true });
-  // Remove leftover Docker volumes that openshell gateway destroy may miss
-  run('docker volume ls -q --filter "name=openshell-cluster-nemoclaw" | xargs -r docker volume rm 2>/dev/null || true', { ignoreError: true });
+function gatewayVolumeCandidates(gatewayName = DEFAULT_GATEWAY_NAME) {
+  return [`openshell-cluster-${gatewayName}`];
+}
+
+function cleanupGatewayVolumes(runFn = run, gatewayName = DEFAULT_GATEWAY_NAME) {
+  const removedVolumes = [];
+  const failedVolumes = [];
+
+  for (const volumeName of gatewayVolumeCandidates(gatewayName)) {
+    const inspectResult = runFn(`docker volume inspect ${shellQuote(volumeName)} >/dev/null 2>&1`, {
+      ignoreError: true,
+      stdio: "ignore",
+    });
+    if (inspectResult.status !== 0) continue;
+
+    const removeResult = runFn(`docker volume rm -f ${shellQuote(volumeName)} >/dev/null 2>&1`, {
+      ignoreError: true,
+      stdio: "ignore",
+    });
+    if (removeResult.status === 0) removedVolumes.push(volumeName);
+    else failedVolumes.push(volumeName);
+  }
+
+  return { removedVolumes, failedVolumes };
+}
+
+function manualGatewayVolumeCleanupCommand(volumeNames) {
+  return `docker volume rm -f ${volumeNames.map(shellQuote).join(" ")}`;
+}
+
+function reportGatewayCleanupResult(cleanupResult) {
+  if (cleanupResult.failedVolumes.length > 0) {
+    console.error("  Automatic cleanup could not remove all stale Docker volumes.");
+    console.error(`  Run: ${manualGatewayVolumeCleanupCommand(cleanupResult.failedVolumes)}`);
+    return;
+  }
+
+  console.error("  Stale state removed. Please rerun the installer.");
+}
+
+function destroyGateway(runFn = run, gatewayName = DEFAULT_GATEWAY_NAME) {
+  runFn(`openshell gateway destroy -g ${gatewayName} 2>/dev/null || true`, { ignoreError: true });
+  return cleanupGatewayVolumes(runFn, gatewayName);
 }
 
 // ── Step 2: Gateway ──────────────────────────────────────────────
@@ -100,7 +144,7 @@ async function startGateway(gpu) {
   // Destroy old gateway and clean up any leftover Docker state from previous failures
   destroyGateway();
 
-  const gwArgs = ["--name", "nemoclaw"];
+  const gwArgs = ["--name", DEFAULT_GATEWAY_NAME];
   // Do NOT pass --gpu here. On DGX Spark (and most GPU hosts), inference is
   // routed through a host-side provider (Ollama, vLLM, or cloud API) — the
   // sandbox itself does not need direct GPU access. Passing --gpu causes
@@ -110,8 +154,8 @@ async function startGateway(gpu) {
   const startResult = run(`openshell gateway start ${gwArgs.join(" ")}`, { ignoreError: true });
   if (startResult.status !== 0) {
     console.error("  Gateway failed to start. Cleaning up stale state...");
-    destroyGateway();
-    console.error("  Stale state removed. Please rerun the installer.");
+    const cleanupResult = destroyGateway();
+    reportGatewayCleanupResult(cleanupResult);
     console.error("  If the error persists, run: openshell gateway info");
     process.exit(1);
   }
@@ -125,8 +169,9 @@ async function startGateway(gpu) {
     }
     if (i === 4) {
       console.error("  Gateway health check failed. Cleaning up...");
-      destroyGateway();
-      console.error("  Run the installer again. If the error persists: openshell gateway info");
+      const cleanupResult = destroyGateway();
+      reportGatewayCleanupResult(cleanupResult);
+      console.error("  If the error persists, run: openshell gateway info");
       process.exit(1);
     }
     require("child_process").spawnSync("sleep", ["2"]);
@@ -520,4 +565,11 @@ async function onboard() {
   printDashboard(sandboxName, model, provider);
 }
 
-module.exports = { onboard };
+module.exports = {
+  cleanupGatewayVolumes,
+  destroyGateway,
+  gatewayVolumeCandidates,
+  manualGatewayVolumeCleanupCommand,
+  onboard,
+  reportGatewayCleanupResult,
+};
